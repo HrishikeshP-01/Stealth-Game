@@ -29,6 +29,15 @@ AFPSProjectile::AFPSProjectile()
 
 	// Die after 3 seconds by default
 	InitialLifeSpan = 3.0f;
+
+	/*UE follows client-server architecture. The server tells the client that projectile actors need to be replicated.
+	* Replication means that a copy of the projectile actor is spawned in the client. This copy will not have the same nature as the one on the server.
+	* Therefore things such as movement must be replicated in the client.
+	* We use replication as it ensures the clients are in sync with server.
+	* We also need to ensure movement is replicated.
+	Their movement */
+	SetReplicates(true);
+	SetReplicateMovement(true);
 }
 
 
@@ -40,12 +49,20 @@ void AFPSProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPr
 		OtherComp->AddImpulseAtLocation(GetVelocity() * 100.0f, GetActorLocation());
 	}*/
 
-	/*We need an instigator in make noise because MakeNoise checks if the Instigator actually has a noise emitter component & is capable of making noise.*/
+	if (HasAuthority())  // (GetLocalRole() == ROLE_Authority)
+	{
+		/* AI code runs only on the server, so we need Make noise to run only in the server*/
 
-	/* We can use the Instigator variable that's aldready in the AActor class althought, Instigator is usually used to know which actor does damage to the particular object
-	Here however, we can use it in this function as we are not using it for anything else
-	Also it can easily be set in the FPSCharacter class in the spawn params & we wont use an additional variable for it */
-	MakeNoise(1.0f, AFPSProjectile::GetInstigator());
+		/*We need an instigator in make noise because MakeNoise checks if the Instigator actually has a noise emitter component & is capable of making noise.*/
 
-	Destroy();
+		/* We can use the Instigator variable that's aldready in the AActor class althought, Instigator is usually used to know which actor does damage to the particular object
+		Here however, we can use it in this function as we are not using it for anything else
+		Also it can easily be set in the FPSCharacter class in the spawn params & we wont use an additional variable for it */
+		MakeNoise(1.0f, AFPSProjectile::GetInstigator());
+
+		/* The clients replicate the projectile so when the destroy function is called on server, the copies are destroyed too.
+		So we should not have the destroy function in the clients.*/
+		Destroy();
+	}
+	
 }

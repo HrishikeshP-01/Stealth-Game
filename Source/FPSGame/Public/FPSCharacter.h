@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+/*When using server fns especially the .generated.h header file is important
+* as it's here that fn definitions such as FunctionName_Validation, FunctionName_Implementation etc. are stored */
 #include "FPSCharacter.generated.h"
 
 class UInputComponent;
@@ -55,6 +57,11 @@ protected:
 	
 	/** Fires a projectile. */
 	void Fire();
+
+	/*Reliable means that it will definetly reach the server
+	With Validation is required for server fns*/
+	UFUNCTION(Server, Reliable, WithValidation)
+		void ServerFire();
 
 	/** Handles moving forward/backward */
 	void MoveForward(float Val);

@@ -48,24 +48,10 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 }
 
-
 void AFPSCharacter::Fire()
 {
-	// try and fire a projectile
-	if (ProjectileClass)
-	{
-		FVector MuzzleLocation = GunMeshComponent->GetSocketLocation("Muzzle");
-		FRotator MuzzleRotation = GunMeshComponent->GetSocketRotation("Muzzle");
-
-		//Set Spawn Collision Handling Override
-		FActorSpawnParameters ActorSpawnParams;
-		ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-		// We set instigator to the character so that it can be used in the make noise fn
-		ActorSpawnParams.Instigator = this;
-
-		// spawn the projectile at the muzzle
-		GetWorld()->SpawnActor<AFPSProjectile>(ProjectileClass, MuzzleLocation, MuzzleRotation, ActorSpawnParams);
-	}
+	/*We make the server spawn the projectile & replicate it in clients. However other things unique to clients such as sound, animation etc are called on each client*/
+	ServerFire();
 
 	// try and play the sound if specified
 	if (FireSound)
@@ -85,6 +71,35 @@ void AFPSCharacter::Fire()
 	}
 }
 
+// We don't implement server functions normally, we have _Implementation() & so on..
+void AFPSCharacter::ServerFire_Implementation()
+{
+	/* We can't direct the server to replicate a projectile. Instead we let the server spawn projectiles.
+	 * Moreover, the server aldready replicates projectiles so letting the client do so will be redundant & will create duplicate copies.
+	 * So we only let the server fire projectiles.*/
+	// try and fire a projectile
+	if (ProjectileClass)
+	{
+		FVector MuzzleLocation = GunMeshComponent->GetSocketLocation("Muzzle");
+		FRotator MuzzleRotation = GunMeshComponent->GetSocketRotation("Muzzle");
+
+		//Set Spawn Collision Handling Override
+		FActorSpawnParameters ActorSpawnParams;
+		ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+		// We set instigator to the character so that it can be used in the make noise fn
+		ActorSpawnParams.Instigator = this;
+
+		// spawn the projectile at the muzzle
+		GetWorld()->SpawnActor<AFPSProjectile>(ProjectileClass, MuzzleLocation, MuzzleRotation, ActorSpawnParams);
+	}
+}
+
+bool AFPSCharacter::ServerFire_Validate()
+{
+	/*This function is used on server side for sanity checks & lets us perform checks & detect cheating etc.
+	* For now we assume the validation is true & the function is always executed properly */
+	return true;
+}
 
 void AFPSCharacter::MoveForward(float Value)
 {
