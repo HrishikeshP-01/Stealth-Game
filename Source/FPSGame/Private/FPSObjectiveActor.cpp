@@ -25,6 +25,10 @@ AFPSObjectiveActor::AFPSObjectiveActor()
 	SphereComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	SphereComp->SetCollisionResponseToAllChannels(ECR_Ignore);
 	SphereComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+
+	/*Sometimes when you set replicates to true late into the code after BPs have been created,
+	the replicates parameter of the BP would still be false. Make sure you check it if any discrepensies arise*/
+	SetReplicates(true);
 }
 
 // Called when the game starts or when spawned
@@ -44,10 +48,14 @@ void AFPSObjectiveActor::NotifyActorBeginOverlap(AActor* OtherActor)
 	Super::NotifyActorBeginOverlap(OtherActor);
 
 	PlayEffect();
-	AFPSCharacter* Character = Cast<AFPSCharacter>(OtherActor);
-	if (Character)
+
+	if (HasAuthority()) //(GetLocalRole() == ROLE_Authority)
 	{
-		Character->bIsCarryingObjective = true;
-		Destroy();
+		AFPSCharacter* Character = Cast<AFPSCharacter>(OtherActor);
+		if (Character)
+		{
+			Character->bIsCarryingObjective = true;
+			Destroy();
+		}
 	}
 }
