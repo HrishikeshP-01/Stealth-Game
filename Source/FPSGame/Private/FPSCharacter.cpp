@@ -119,3 +119,35 @@ void AFPSCharacter::MoveRight(float Value)
 		AddMovementInput(GetActorRightVector(), Value);
 	}
 }
+
+void AFPSCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	/*Networking the pitch
+	* You will find that without networking the pitch of the hand upward & downward movements of the other players are not replicated
+	* This leads to the projectile being spawned at the wrong locations as the fire function uses the location & orientation of the copy of the player on the server
+	* As the orientation is not networked the default orientation is taken & therefore the spawing of projectile is wrong.
+	* Also the position of the hands of the other players will not be the same in any of the machines as they are not networked.
+	
+	* We use this method where we update the pitch of all the players that are not being controlled by the current player.
+	* Say I am a player on my machine the character that I control must be tweaked by the input that I give. 
+	* The other players' characters are actually copies on my machine and players on theirs.
+	* My machine's character pitch is being manipulated using the input component.
+	* To simulate the pitch of the other players' characters, we change the pitch of the local copies of the player on our machine
+	* To do this we use the in-built RemoteViewPitch which stores the pitch of the other clients*/
+	if (!IsLocallyControlled()) // Do this for player characters not controlled by us
+	{
+		FRotator NewRotation = CameraComponent->GetRelativeRotation(); 
+		/* We didn't use something more direct such as the mesh component because the origin of the mesh component was at a different postion 
+		& applying the changes there caused huge variation in rotation. I THINK RemoteViewPitch works best when the origin of the compoent is close to camera or is camera itself */
+		NewRotation.Pitch = RemoteViewPitch * 360.0f / 255.0f;
+		/* RemoteViewPitch is a uint8. It can't store any negative values & the result isn't between 0-360 degrees.
+		This will case discrepencies in the orientation of the copies when their player has an orientation exeeding the uint8's limit.
+		To avoid this first we have to convert the RemoteViewPitch data to an angle that's between 0-360 degrees.
+		
+		We look at the defintion of RemoteViewPitch in engine.
+		RemoteViewPitch = (uint8)(NewRemotePitch * 255.0f/360.0f)
+		So we get the NewRemotePitch value as that will be between 0-360*/
+		CameraComponent->SetRelativeRotation(NewRotation);
+	}
+}

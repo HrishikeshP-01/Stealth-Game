@@ -81,5 +81,7 @@ public:
 	// We want to access this from objective actor so it's public
 	UPROPERTY(BlueprintReadOnly, Category="Gameplay")
 		bool bIsCarryingObjective = false;
+
+	virtual void Tick(float DeltaTime) override;
 };
 
