@@ -64,7 +64,16 @@ protected:
 	FTimerHandle TimerHandle_ResetOrientation;
 	FRotator OriginalRotation; // No need to expose it to BP as we wont be using it outside of this
 
-	EAIState GuardState;
+	/* The AI parts of the code only gets run on server. So when the OnSee, OnHear parts run & the GuardState is updated,
+	* the client machine's copy of GuardState isn't updated. So we need to replicate GuardState.
+	* ReplicatedUsing=OnRep_GuardState means that every time the GuardState is updated, OnRep_GuardState fn runs in each client.
+	* The fn is automatically run on client when GuardState is replicated. However, if you want the same fn to run on the server you can simply call it.
+	* It is just a function. The ReplicatedUsing is what makes it run on the clients automatically. OnRep_GuardState is just another fn we create*/
+	UPROPERTY(ReplicatedUsing=OnRep_GuardState)
+		EAIState GuardState;
+
+	UFUNCTION()
+		void OnRep_GuardState();
 
 	void ChangeGuardState(EAIState NewState);
 	UFUNCTION(BlueprintImplementableEvent)
